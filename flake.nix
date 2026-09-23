@@ -139,33 +139,53 @@
       inletSystem = mkCollectorSystem ./hosts/inlet.nix;
       outletSystem = mkCollectorSystem ./hosts/outlet.nix;
 
-      # What nnh CONTRIBUTES back to ndh's catalog (the "publish" side of the
-      # federation). OWNERSHIP boundary: ndh owns the bare /25 AND its carve
-      # (dynamic-low 172.16.6.0/27 + static-high); nnh owns exactly ONE static
-      # sub-segment inside it — the top /30, 172.16.6.124/30 (usable .125/.126) —
-      # which it pins (see mkProfile's ipv4.address) and declares here. nnh publishes
-      # ONLY what it owns: this /30 and its two hosts, NOT the enclosing /25 (ndh's).
-      # ndh unions this segment in; akvorado's most-specific-prefix match makes the
-      # /30 win over ndh's /25 for .124-.127. Self-contained BY DESIGN (it declares
-      # only nnh's own /30 and never reads ndh's catalog) — else nnh's contribution
-      # would depend on ndh's which depends on nnh's, a real value cycle. The mutual
-      # flake dependency is broken with reciprocal
+      # The ONE /30 nnh owns, declared once and consumed three times: the blueprint
+      # contribution below, and the two instance pins (mkProfile's ipv4.address). It used
+      # to be five literals; ndh held a sixth and seventh copy in `staticHosts`, which is
+      # what made them able to disagree. ndh now derives its dnsmasq host-records from the
+      # segment published here, so moving this /30 is a one-line change on this side.
+      #
+      # It stays a LITERAL rather than reading ndh's catalog, and that is not laziness: ndh
+      # MERGES this blueprint into that catalog, so reading it back would close a real value
+      # cycle. (nnh reads ndh's catalog elsewhere — just not from the contribution ndh
+      # consumes.) The flake-level mutual dependency is broken separately, with reciprocal
       # `inputs.<other>.inputs.<self>.follows = ""` (see the hub memory
       # flake-mutual-dependency-follows-root).
+      #
+      # POSITION. ndh's fabric slice for a bare-metal is derived from rke2lab's hostId:
+      # 172.16.<hostId*16>.0/20, whose low eight /24s are the bare-br L2. Slot 0 of that
+      # half is host infra — gateway .1, the dynamic DHCP pool .2-.30 — and pinned tenants
+      # live above the pool, filled top-down. nikopol is hostId 1, so slot 0 is
+      # 172.16.16.0/24 and nnh takes .124/30 in it (usable .125/.126). Previously this read
+      # "the top /30 of bare-br's /25" (172.16.6.124/30); the enclosing net is a /21 now, so
+      # the anchor is slot 0, not the top of the net.
+      #
+      # OWNERSHIP boundary: ndh owns the slice and its carve; nnh owns exactly this /30 and
+      # its two hosts, and publishes ONLY that — never the enclosing net. ndh unions it in,
+      # and akvorado's most-specific-prefix match makes the /30 win over the enclosing span
+      # for .124-.127.
+      collector = rec {
+        base = "172.16.16";
+        cidr = "${base}.124/30";
+        inletAddress = "${base}.126";
+        outletAddress = "${base}.125";
+      };
+
+      # What nnh CONTRIBUTES back to ndh's catalog (the "publish" side of the federation).
       networkBlueprint = {
         segments = [
           {
-            cidr = "172.16.6.124/30";
+            cidr = collector.cidr;
             name = "nnh-collector";
             asn = 65000;
             hosts = [
               {
                 name = "nnh-inlet";
-                ip = "172.16.6.126";
+                ip = collector.inletAddress;
               }
               {
                 name = "nnh-outlet";
-                ip = "172.16.6.125";
+                ip = collector.outletAddress;
               }
             ];
           }
@@ -182,10 +202,10 @@
 
       # Incus profiles, generated from Nix (a heredoc would break on `''` stripping).
       # Single NIC lan0 bridged to `bare-br` — nikopol's ndh-provisioned segment
-      # (.nikopol dnsmasq zone + the /24 advertised into the tailnet).
-      # `ipv4.address` PINS a STATIC lease: bare-br's /25 is carved dynamic-low
-      # (172.16.6.0/27, ndh's dhcp.ranges) / static-high, and the collector takes the
-      # top of the static range. This stops a bare-br recreate from re-shuffling the
+      # (.nikopol dnsmasq zone + the slice advertised into the tailnet).
+      # `ipv4.address` PINS a STATIC lease: slot 0 of that segment is carved dynamic-low
+      # (a /27, ndh's dhcp.ranges) then pinned tenants above it, and the collector takes
+      # the /30 declared in `collector`. This stops a bare-br recreate from re-shuffling the
       # instance IPs — which had wedged akvorado's Kafka clients (advertised by name)
       # and left the probe exporting to a stale IP. Incus records the reservation in
       # bare-br's dnsmasq, and `dns.mode=dynamic` still maps nnh-*.nikopol → the pin.
@@ -218,9 +238,8 @@
       # ≤1-day buffer that's ephemeral BY DESIGN). Nothing here needs to survive a rebuild.
       inletProfileYaml = mkProfile {
         description = "nnh-inlet (ingest edge + brain)";
-        # Top of the static range: the top /30 of bare-br's /25 is 172.16.6.124/30
-        # (usable .125/.126); the inlet takes .126, the outlet .125.
-        ipv4Address = "172.16.6.126";
+        # The inlet takes the high address of nnh's /30; see `collector` for the position.
+        ipv4Address = collector.inletAddress;
         extraDevices = { };
       };
 
@@ -232,7 +251,7 @@
       # GeoIP from scratch, hammering the free tier into HTTP 429.
       outletProfileYaml = mkProfile {
         description = "nnh-outlet (store)";
-        ipv4Address = "172.16.6.125"; # top /30 (172.16.6.124/30), paired with inlet .126
+        ipv4Address = collector.outletAddress; # paired with the inlet; see `collector`
         extraDevices = {
           data = {
             type = "disk";

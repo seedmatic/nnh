@@ -2,7 +2,8 @@
 #
 # The pipeline is split across TWO NixOS Incus instances, BOTH attached to
 # nikopol's `bare-br` segment (ndh-provisioned: DHCP + a `.nikopol` dnsmasq zone,
-# the /24 advertised into the tailnet). Each instance gets a 172.16.6.x lease and
+# the slice advertised into the tailnet). Each instance gets a pinned lease in that
+# segment (the /30 nnh owns — see `collector` in flake.nix) and
 # auto-registers as `<hostName>.nikopol`, so they reach each other — and the probe
 # reaches the inlet — BY NAME, independent of the carrier hotspot. This replaces
 # the former single-box hand-rolled /30 on the Wi-Fi bridge.
@@ -17,7 +18,7 @@
   imports = [ ../modules/akvorado.nix ];
 
   # Single bridged NIC `lan0` on bare-br, DHCP only: the lease carries the address
-  # (172.16.6.x), the .nikopol name registration (dnsmasq keys off the hostname the
+  # (pinned via the profile's ipv4.address), the .nikopol name registration (dnsmasq keys off the hostname the
   # DHCP client sends = networking.hostName), the default route (internet, for the
   # GeoIP fetch on the outlet) and the resolver. No static address: bare-br owns it.
   networking.useDHCP = false; # kill the deprecated per-interface catch-all
