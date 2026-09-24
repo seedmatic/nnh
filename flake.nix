@@ -112,12 +112,12 @@
       # `inputs.<other>.inputs.<self>.follows = ""` — added in lock-step with ndh
       # when/if nnh contributes a span (see the hub memory
       # flake-mutual-dependency-follows-root). Today nnh owns no span (both
-      # instances are DHCP tenants of ndh's bare-br /25), so it is a pure consumer.
+      # instances are DHCP tenants of ndh's fabric-br /21), so it is a pure consumer.
       ndhHosts = ndh.catalog.netplan.lan.hosts;
       ndhSegments = ndh.catalog.netplan.segments;
       ndhAsns = ndh.catalog.netplan.asns;
 
-      # The pipeline is split across TWO Incus instances, both on bare-br, along a
+      # The pipeline is split across TWO Incus instances, both on fabric-br, along a
       # failure-domain line:
       #   nnh-inlet  — ingest edge + brain (orchestrator + inlet + Kafka)
       #   nnh-outlet — store (outlet + console + ClickHouse/Redis + GeoIP)
@@ -153,12 +153,12 @@
       # flake-mutual-dependency-follows-root).
       #
       # POSITION. ndh's fabric slice for a bare-metal is derived from rke2lab's hostId:
-      # 172.16.<hostId*16>.0/20, whose low eight /24s are the bare-br L2. Slot 0 of that
+      # 172.16.<hostId*16>.0/20, whose low eight /24s are the fabric-br L2. Slot 0 of that
       # half is host infra — gateway .1, the dynamic DHCP pool .2-.30 — and pinned tenants
       # live above the pool, filled top-down. nikopol is hostId 1, so slot 0 is
       # 172.16.16.0/24 and nnh takes .124/30 in it (usable .125/.126). Previously this read
-      # "the top /30 of bare-br's /25" (172.16.6.124/30); the enclosing net is a /21 now, so
-      # the anchor is slot 0, not the top of the net.
+      # "the top /30 of bare-br's /25" (172.16.6.124/30) — that bridge has since been renamed
+      # fabric-br and its net widened to a /21, so the anchor is slot 0, not the top of the net.
       #
       # OWNERSHIP boundary: ndh owns the slice and its carve; nnh owns exactly this /30 and
       # its two hosts, and publishes ONLY that — never the enclosing net. ndh unions it in,
@@ -201,14 +201,14 @@
       incusClient = probePkgs.incus.passthru.client;
 
       # Incus profiles, generated from Nix (a heredoc would break on `''` stripping).
-      # Single NIC lan0 bridged to `bare-br` — nikopol's ndh-provisioned segment
+      # Single NIC lan0 bridged to `fabric-br` — nikopol's ndh-provisioned segment
       # (.nikopol dnsmasq zone + the slice advertised into the tailnet).
       # `ipv4.address` PINS a STATIC lease: slot 0 of that segment is carved dynamic-low
       # (a /27, ndh's dhcp.ranges) then pinned tenants above it, and the collector takes
-      # the /30 declared in `collector`. This stops a bare-br recreate from re-shuffling the
+      # the /30 declared in `collector`. This stops a fabric-br recreate from re-shuffling the
       # instance IPs — which had wedged akvorado's Kafka clients (advertised by name)
       # and left the probe exporting to a stale IP. Incus records the reservation in
-      # bare-br's dnsmasq, and `dns.mode=dynamic` still maps nnh-*.nikopol → the pin.
+      # fabric-br's dnsmasq, and `dns.mode=dynamic` still maps nnh-*.nikopol → the pin.
       # security.nesting eases NixOS's nested systemd mounts in an unprivileged
       # container. Persistent volumes differ by role.
       mkProfile =
@@ -225,7 +225,7 @@
             lan0 = {
               type = "nic";
               nictype = "bridged";
-              parent = "bare-br";
+              parent = "fabric-br";
               name = "lan0";
               "ipv4.address" = ipv4Address;
             };
@@ -278,7 +278,7 @@
       # then brings the two-instance appliance up in its own `nnh` Incus project:
       # ensures project + the outlet's persistent volumes + both profiles, imports
       # each split image (metadata + squashfs), and launches nnh-inlet + nnh-outlet
-      # on bare-br — or, if an instance already exists, `incus rebuild`s it from the
+      # on fabric-br — or, if an instance already exists, `incus rebuild`s it from the
       # new image (keeps the volumes, so the ClickHouse flow history survives).
       collectorDeploy = probePkgs.writeShellApplication {
         name = "collector-deploy";
@@ -333,7 +333,7 @@
         collector-deploy = {
           type = "app";
           program = "${collectorDeploy}/bin/collector-deploy";
-          meta.description = "Build both images + bring up the two-instance appliance (nnh-inlet + nnh-outlet) on bare-br in the nnh Incus project — docs: https://github.com/seedmatic/nnh/blob/main/docs/architecture.adoc";
+          meta.description = "Build both images + bring up the two-instance appliance (nnh-inlet + nnh-outlet) on fabric-br in the nnh Incus project — docs: https://github.com/seedmatic/nnh/blob/main/docs/architecture.adoc";
         };
       };
 
@@ -343,7 +343,7 @@
       };
 
       # The federation contribution ndh unions into its catalog (see the
-      # networkBlueprint `let` above): nnh's two bare-br hosts, names only.
+      # networkBlueprint `let` above): nnh's two fabric-br hosts, names only.
       lib.networkBlueprint = networkBlueprint;
     };
 }
