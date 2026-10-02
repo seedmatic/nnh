@@ -4,7 +4,7 @@
       "Bash(flox activate *)"
     ]
   },
-  "model": "claude-opus-4-8[1m]",
+  "model": "opus[1m]",
   "hooks": {
     "SessionStart": [
       {
