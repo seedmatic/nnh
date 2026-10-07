@@ -8,3 +8,6 @@
 # relock's guard rail — which is also why it cannot simply be `git add -f`'ed:
 # .gitignore stops protecting a file the moment it is tracked.
 flake-registry.local.json
+
+# Claude Code's own per-checkout files: nothing under .claude/ is tracked
+/.claude/
