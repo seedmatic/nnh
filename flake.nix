@@ -342,6 +342,27 @@
           program = "${collectorDeploy}/bin/collector-deploy";
           meta.description = "Build both images + bring up the two-instance appliance (nnh-inlet + nnh-outlet) on fabric-br in the nnh Incus project — docs: https://github.com/seedmatic/nnh/blob/main/docs/architecture.adoc";
         };
+        # relock — THIS repo's locks, by the shared implementation in nix-flake-commons'
+        # `lib.mkRelockApp`. Its impact guard measures `packages.${probeSystem}` only, which
+        # still sees an input that moves just the linux images: `collector-deploy` interpolates
+        # all four of them.
+        #
+        # `consumers` names ndh because the pair is a CYCLE (ndh reads `lib.networkBlueprint`,
+        # nnh reads ndh's catalog, cut at the lock by reciprocal empty follows), and a cycle only
+        # turns if each side requests the other.
+        relock = {
+          type = "app";
+          program = "${
+            inputs.flake-commons.lib.mkRelockApp {
+              pkgs = probePkgs;
+              name = "nnh";
+              slug = "seedmatic/nnh";
+              url = "https://github.com/seedmatic/nnh.git";
+              consumers = [ "github:seedmatic/ndh" ];
+            }
+          }/bin/relock";
+          meta.description = "Reconcile THIS repo's locks: bump each input, DROP any bump that moves no exported derivation, push. --downstream requests ndh's own relock — impl: nix-flake-commons lib.mkRelockApp";
+        };
       };
 
       nixosConfigurations = {
