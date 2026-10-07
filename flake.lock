@@ -301,16 +301,15 @@
         "nixpkgs": "nixpkgs_13",
         "nixpkgs-unstable": "nixpkgs-unstable",
         "nvfetcher": "nvfetcher",
-        "socket-vmnet": "socket-vmnet",
         "sops-nix": "sops-nix",
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1791375952,
-        "narHash": "sha256-iPat/fHlm1M/co4wVfAcGMANBYYdyGdGmMtRkHtOTUQ=",
+        "lastModified": 1791380945,
+        "narHash": "sha256-x6FHfbEu8JsB8cWajr0Qo96mpNHW15jE57SlMpoZXsU=",
         "owner": "seedmatic",
         "repo": "nix-flake-commons",
-        "rev": "12788923b2a09af5a0b4b890bd1358278757ebe9",
+        "rev": "85e86f59b0e4092f6c4e4d63f7c04dc628169744",
         "type": "github"
       },
       "original": {
@@ -1068,21 +1067,16 @@
         ],
         "nnh": [],
         "rke2lab": "rke2lab",
-        "socket-vmnet": [
-          "ndh",
-          "flake-commons",
-          "socket-vmnet"
-        ],
         "sops-nix": "sops-nix_2",
         "tailscale-fork": "tailscale-fork",
         "treefmt-nix": "treefmt-nix_2"
       },
       "locked": {
-        "lastModified": 1791376800,
-        "narHash": "sha256-7ZH3BLQkMe3PB/bQEK0G8NRj/7pZVKRyyS06Kb66wKI=",
+        "lastModified": 1791381527,
+        "narHash": "sha256-V8wwHHkS6TNdPJz4lJDKaJCHNR3BwtevLw5nZ/2jaPQ=",
         "owner": "seedmatic",
         "repo": "ndh",
-        "rev": "b953d62e60074e22caf7a7a71041905b57a2447b",
+        "rev": "6281eaf89b5a11bb7cf5657dfe06b67982ce2f85",
         "type": "github"
       },
       "original": {
@@ -1732,51 +1726,6 @@
         "owner": "seedmatic",
         "ref": "seed-incluster",
         "repo": "rke2lab",
-        "type": "github"
-      }
-    },
-    "socket-vmnet": {
-      "inputs": {
-        "flake-commons": [
-          "flake-commons"
-        ],
-        "flake-compat": [
-          "flake-commons",
-          "socket-vmnet",
-          "flake-commons",
-          "flake-compat"
-        ],
-        "nixpkgs": [
-          "flake-commons",
-          "socket-vmnet",
-          "flake-commons",
-          "nixpkgs"
-        ],
-        "nvfetcher": [
-          "flake-commons",
-          "socket-vmnet",
-          "flake-commons",
-          "nvfetcher"
-        ],
-        "utils": [
-          "flake-commons",
-          "socket-vmnet",
-          "flake-commons",
-          "flake-utils"
-        ]
-      },
-      "locked": {
-        "lastModified": 1760312638,
-        "narHash": "sha256-jDuQtZ4JGay3L96oq6ZkWW9eXVxZ+Z5jEA+55ltvTKY=",
-        "owner": "nxmatic",
-        "repo": "nix-socket-vmnet",
-        "rev": "0cfbc260852a1e200b5c651c21e304b7c55fee65",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nxmatic",
-        "ref": "develop",
-        "repo": "nix-socket-vmnet",
         "type": "github"
       }
     },
