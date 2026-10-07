@@ -1,13 +1,20 @@
 {
   description = "nnh — unsampled network-flow observability appliance (pmacct probe + Akvorado collector)";
 
+  # Every SEEDMATIC-owned input below is an INDIRECT id (`url = "ndh"`), resolved through
+  # nix's registry: the branch-less default targets live in the committed
+  # flake-registry.json, and the operator re-aims one by dropping a
+  # flake-registry.local.json beside it (see the [include] in .flox/env/manifest.toml).
+  # A branch named here could only be re-aimed by pushing an edit to this file; naming
+  # none means naming nothing that can be deleted. The lock still records a revision,
+  # so evaluating from it needs no registry at all.
   inputs = {
     # Shared aggregator — keeps nnh in lock-step with the rest of the
     # seedmatic family (nix-darwin-home, rke2lab): nixpkgs + everything else we
     # borrow (flox, sops-nix, nixos-generators, disko, …) flow from here rather
     # than pinning our own. We only wire `follows` for the inputs we actually
     # consume today; the rest are pulled from flake-commons when a module needs them.
-    flake-commons.url = "github:seedmatic/nix-flake-commons/develop";
+    flake-commons.url = "flake-commons";
     nixpkgs.follows = "flake-commons/nixpkgs";
 
     # Akvorado is nnh-specific — referenced DIRECTLY here, deliberately NOT
@@ -38,7 +45,7 @@
     # shared aggregator so ndh and nnh resolve the SAME nixpkgs/flox/… tree instead of
     # locking a second copy.
     ndh = {
-      url = "github:seedmatic/ndh/develop";
+      url = "ndh";
       inputs.nnh.follows = "";
       inputs.flake-commons.follows = "flake-commons";
     };
