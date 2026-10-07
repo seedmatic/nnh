@@ -81,8 +81,9 @@ has one — see akvorado discussions #1740).
 
 - **External-worktree operating model** (rke2lab is the reference): bare at
   `git-bare-store/seedmatic/nnh.git`, worktrees at
-  `git-worktree-store/seedmatic/flowlab.d/<namespace>/<branch>`, **relative paths**. Each
-  conversation gets its own worktree; treat `main` as read-only reference. Creating/removing a
-  worktree + its `.code-workspace` (and Bedrock backend selection) is the **`worktree` skill**.
-- **Handoffs are non-git**, named `<worktree>.handoff`, living beside the worktree in the
-  `flowlab.d/` container — never committed.
+  `git-worktree-store/seedmatic/nnh.d/<namespace>/<branch>`, **relative paths**. The development
+  worktree is shared by the sessions of a stack, under the lead protocol of the common rules
+  (`seedmatic-workflow`); treat `main` as read-only reference. Creating/removing a worktree + its
+  `.code-workspace` (and Bedrock backend selection) is the **`worktree` skill**.
+- **Session scratch** (handoffs, drafts, probes) goes in a `.scratchpad.d/<topic>/`, per the same
+  common rules — ignored by the global git ignore, never committed.
