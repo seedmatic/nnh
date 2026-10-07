@@ -86,7 +86,3 @@ has one — see akvorado discussions #1740).
   worktree + its `.code-workspace` (and Bedrock backend selection) is the **`worktree` skill**.
 - **Handoffs are non-git**, named `<worktree>.handoff`, living beside the worktree in the
   `flowlab.d/` container — never committed.
-
-# Common instructions (shared via the claude-hub subtree)
-
-@.claude/hub/instructions.md
