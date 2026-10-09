@@ -1,0 +1,20 @@
+{
+  "asns": {},
+  "segments": [
+    {
+      "asn": 65000,
+      "cidr": "172.16.16.124/30",
+      "hosts": [
+        {
+          "ip": "172.16.16.126",
+          "name": "nnh-inlet"
+        },
+        {
+          "ip": "172.16.16.125",
+          "name": "nnh-outlet"
+        }
+      ],
+      "name": "nnh-collector"
+    }
+  ]
+}
