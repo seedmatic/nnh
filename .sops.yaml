@@ -1,9 +1,11 @@
 creation_rules:
   # Age recipients for SOPS encryption:
-  # - age10ey0l... : Operator key (from nix-darwin-home, used by git sops filter)
-  # - age1k0tc4... : Flux/cluster key (derived from rke2-cluster SSH key via ssh-to-age)
-  #                  Obtained: ssh-to-age < ~/.local/var/run/secrets/ssh-keys/rke2-cluster.pub
+  # - age1stxd... : Operator key, standalone (derived from nothing, in no keys.yaml)
+  # - age16ldt7... : Flux/cluster key (derived from rke2-cluster SSH key via ssh-to-age)
+  #                  Obtained: ssh-to-age < ~/.local/share/ndh/ssh-keys/rke2-cluster.pub
   #                  Used by Flux in-cluster to decrypt gitops/ resources
+  # Until 2026-10-10 these were age10ey0l... and age1k0tc4..., whose privates were published:
+  # files encrypted before that date are readable from the public history.
 
   # k8s is catching only secrets based
   - path_regex: '.*\.ya?ml'
