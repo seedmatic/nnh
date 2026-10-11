@@ -8,6 +8,10 @@
     {
       "from": { "type": "indirect", "id": "ndh" },
       "to": { "type": "github", "owner": "seedmatic", "repo": "ndh" }
+    },
+    {
+      "from": { "type": "indirect", "id": "nnh-contribution" },
+      "to": { "type": "github", "owner": "seedmatic", "repo": "nnh", "ref": "fabric/contribution" }
     }
   ]
 }

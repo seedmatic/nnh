@@ -1574,6 +1574,21 @@
         "type": "github"
       }
     },
+    "nnh-contribution": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1791581219,
+        "narHash": "sha256-bwEfTEWlYXBmfJPxjCCT2jg9+eCikSXc/pyaGvocNns=",
+        "owner": "seedmatic",
+        "repo": "nnh",
+        "rev": "38f61fc21b39757d21fdf53f240d0b2af488ddc8",
+        "type": "github"
+      },
+      "original": {
+        "id": "nnh-contribution",
+        "type": "indirect"
+      }
+    },
     "nvfetcher": {
       "inputs": {
         "flake-compat": "flake-compat_6",
@@ -1676,7 +1691,8 @@
         "nixpkgs": [
           "flake-commons",
           "nixpkgs"
-        ]
+        ],
+        "nnh-contribution": "nnh-contribution"
       }
     },
     "rust-analyzer-src": {

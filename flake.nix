@@ -49,6 +49,12 @@
       inputs.nnh.follows = "";
       inputs.flake-commons.follows = "flake-commons";
     };
+
+    # nnh's own delivery, pinned back like any head: its fabric contribution,
+    # network-blueprint.json on the fabric/contribution orphan, which publish-contribution
+    # writes. Data, not a flake.
+    nnh-contribution.url = "nnh-contribution";
+    nnh-contribution.flake = false;
   };
 
   outputs =
@@ -178,8 +184,10 @@
         outletAddress = "${base}.125";
       };
 
-      # What nnh CONTRIBUTES back to ndh's catalog (the "publish" side of the federation).
-      networkBlueprint = {
+      # What nnh CONTRIBUTES back to ndh's catalog — the SOURCE. publish-contribution delivers
+      # it to the fabric/contribution orphan, lib.networkBlueprint reads the pinned delivery,
+      # and contribution-fresh holds the pin to this.
+      contribution = {
         segments = [
           {
             cidr = collector.cidr;
@@ -199,6 +207,11 @@
         ];
         asns = { }; # nnh introduces no new AS numbers
       };
+
+      # The contribution as delivered: one file, keys sorted.
+      contributionJson = probePkgs.runCommand "network-blueprint.json" { nativeBuildInputs = [ probePkgs.yq-go ]; } ''
+        yq -p=json -o=json 'sort_keys(..)' ${probePkgs.writeText "contribution.json" (builtins.toJSON contribution)} > $out
+      '';
 
       # ── Collector deploy (darwin operator tool) ─────────────────────────────
       # The Incus client is Linux-only as a daemon, but nixpkgs ships a
@@ -342,6 +355,33 @@
           program = "${collectorDeploy}/bin/collector-deploy";
           meta.description = "Build both images + bring up the two-instance appliance (nnh-inlet + nnh-outlet) on fabric-br in the nnh Incus project — docs: https://github.com/seedmatic/nnh/blob/main/docs/architecture.adoc";
         };
+        # Deliver the contribution: its JSON onto the fabric/contribution orphan, one signed
+        # commit pushed fast-forward, by plumbing — no checkout moves. Then relock the
+        # nnh-contribution pin. Run it by REVISION, from the repo root:
+        #   nix run "git+file://$PWD?rev=$(git rev-parse HEAD)#publish-contribution"
+        # A `.#` reference copies the working tree into the store, decrypted .secrets included.
+        publish-contribution = {
+          type = "app";
+          program = "${probePkgs.writeShellApplication {
+            name = "publish-contribution";
+            runtimeInputs = [ probePkgs.coreutils probePkgs.git ];
+            text = ''
+              git rev-parse --show-toplevel >/dev/null
+              git fetch --quiet origin fabric/contribution
+              base=$(git rev-parse FETCH_HEAD)
+              blob=$(git hash-object -w --stdin < ${contributionJson})
+              tree=$(printf '100644 blob %s\tnetwork-blueprint.json\n' "$blob" | git mktree)
+              if [ "$tree" = "$(git rev-parse "$base^{tree}")" ]; then
+                echo "fabric/contribution already carries this contribution (''${base:0:12})"
+                exit 0
+              fi
+              commit=$(git commit-tree -S "$tree" -p "$base" -m "fabric/contribution: nnh's contribution, from $(git rev-parse --short HEAD)")
+              git push origin "$commit:refs/heads/fabric/contribution"
+              echo "delivered ''${commit:0:12} — now relock nnh's nnh-contribution pin"
+            '';
+          }}/bin/publish-contribution";
+          meta.description = "Deliver nnh's fabric contribution to the fabric/contribution orphan (signed commit, fast-forward push)";
+        };
         # relock — THIS repo's locks, by the shared implementation in nix-flake-commons'
         # `lib.mkRelockApp`. Its impact guard measures `packages.${probeSystem}` only, which
         # still sees an input that moves just the linux images: `collector-deploy` interpolates
@@ -370,8 +410,22 @@
         outlet = outletSystem;
       };
 
-      # The federation contribution ndh unions into its catalog (see the
-      # networkBlueprint `let` above): nnh's two fabric-br hosts, names only.
-      lib.networkBlueprint = networkBlueprint;
+      # The pinned fabric/contribution delivery: nnh's two fabric-br hosts, names only.
+      # ndh unions it into its catalog; the source is `contribution` above.
+      lib.networkBlueprint = builtins.fromJSON (builtins.readFile "${inputs.nnh-contribution}/network-blueprint.json");
+
+      # The pinned delivery is the source's: a contribution changed without being delivered
+      # fails here.
+      checks.${probeSystem}.contribution-fresh =
+        probePkgs.runCommand "contribution-fresh" { nativeBuildInputs = [ probePkgs.yq-go ]; } ''
+          yq -p=json -o=json 'sort_keys(..)' ${inputs.nnh-contribution}/network-blueprint.json > pinned.json
+          yq -p=json -o=json 'sort_keys(..)' ${contributionJson} > fresh.json
+          if ! diff -u pinned.json fresh.json; then
+            echo "the pinned fabric/contribution network-blueprint.json is STALE vs nnh's contribution." >&2
+            echo "Deliver it (publish-contribution), then relock nnh's nnh-contribution pin." >&2
+            exit 1
+          fi
+          touch $out
+        '';
     };
 }
