@@ -37,16 +37,12 @@
     # catalog to label our own side with per-host names in the flow console — no
     # darwin build is realized.
     #
-    # This is a MUTUAL (federated) dependency: nnh reads ndh's catalog while ndh
-    # reads nnh's `lib.networkBlueprint` (its own `nnh` input). That cycle is broken
-    # with `inputs.nnh.follows = ""` — an empty follows resolves to the ROOT flake
-    # (this one), a fixpoint that terminates the recursion (see the hub memory
-    # flake-mutual-dependency-follows-root). `inputs.flake-commons.follows` dedupes the
-    # shared aggregator so ndh and nnh resolve the SAME nixpkgs/flox/… tree instead of
-    # locking a second copy.
+    # ndh pins nnh's DELIVERY — the fabric/contribution orphan — not this flake, so the pair
+    # is no cycle and nothing is cut. `inputs.flake-commons.follows` dedupes the shared
+    # aggregator so ndh and nnh resolve the SAME nixpkgs/flox/… tree instead of locking a
+    # second copy.
     ndh = {
       url = "ndh";
-      inputs.nnh.follows = "";
       inputs.flake-commons.follows = "flake-commons";
     };
 
@@ -120,12 +116,8 @@
       #   hosts    : name→{ip,mac,kind} → per-host /32 NetNames (daily-drivers +
       #              rke2 nodes projected from rke2lab)
       # This replaces nnh's former hardcoded selfBase/gatewayNetworks/asns.
-      # nnh keeps `ndh` as a flake input and consumes it LIVE at eval; the mutual
-      # dependency (ndh unioning nnh's blueprint) is broken with reciprocal
-      # `inputs.<other>.inputs.<self>.follows = ""` — added in lock-step with ndh
-      # when/if nnh contributes a span (see the hub memory
-      # flake-mutual-dependency-follows-root). Today nnh owns no span (both
-      # instances are DHCP tenants of ndh's fabric-br /21), so it is a pure consumer.
+      # nnh keeps `ndh` as a flake input and consumes it LIVE at eval. ndh unions nnh's
+      # contribution from its delivery, not from this flake, so there is no cycle to cut.
       ndhHosts = ndh.catalog.netplan.lan.hosts;
       ndhSegments = ndh.catalog.netplan.segments;
       ndhAsns = ndh.catalog.netplan.asns;
@@ -161,9 +153,8 @@
       # It stays a LITERAL rather than reading ndh's catalog, and that is not laziness: ndh
       # MERGES this blueprint into that catalog, so reading it back would close a real value
       # cycle. (nnh reads ndh's catalog elsewhere — just not from the contribution ndh
-      # consumes.) The flake-level mutual dependency is broken separately, with reciprocal
-      # `inputs.<other>.inputs.<self>.follows = ""` (see the hub memory
-      # flake-mutual-dependency-follows-root).
+      # consumes.) There is no flake-level cycle either: ndh pins this contribution's
+      # delivery, not nnh's flake.
       #
       # POSITION. ndh's fabric slice for a bare-metal is derived from rke2lab's hostId:
       # 172.16.<hostId*16>.0/20, whose low eight /24s are the fabric-br L2. Slot 0 of that
@@ -382,26 +373,18 @@
           }}/bin/publish-contribution";
           meta.description = "Deliver nnh's fabric contribution to the fabric/contribution orphan (signed commit, fast-forward push)";
         };
-        # relock — THIS repo's locks, by the shared implementation in nix-flake-commons'
-        # `lib.mkRelockApp`. Its impact guard measures `packages.${probeSystem}` only, which
-        # still sees an input that moves just the linux images: `collector-deploy` interpolates
-        # all four of them.
-        #
-        # `consumers` names ndh because the pair is a CYCLE (ndh reads `lib.networkBlueprint`,
-        # nnh reads ndh's catalog, cut at the lock by reciprocal empty follows), and a cycle only
-        # turns if each side requests the other.
+        # relock — nix-flake-commons' `lib.mkRelockApp`, the one implementation every seedmatic
+        # flake shares. This head supplies its name; the heads, the order and what each head pins
+        # are read from nix-flake-commons:fabric/heads.
         relock = {
           type = "app";
           program = "${
             inputs.flake-commons.lib.mkRelockApp {
               pkgs = probePkgs;
               name = "nnh";
-              slug = "seedmatic/nnh";
-              url = "https://github.com/seedmatic/nnh.git";
-              consumers = [ "github:seedmatic/ndh" ];
             }
           }/bin/relock";
-          meta.description = "Reconcile THIS repo's locks: bump each input, DROP any bump that moves no exported derivation, push. --downstream requests ndh's own relock — impl: nix-flake-commons lib.mkRelockApp";
+          meta.description = "Reconcile THIS head's locks: bump each input, DROP any bump that moves nothing it exports, push. --plan shows a pass, --downstream plays it over every head of fabric/heads";
         };
       };
 
