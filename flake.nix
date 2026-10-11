@@ -350,7 +350,7 @@
         # commit pushed fast-forward, by plumbing — no checkout moves. Then relock the
         # nnh-contribution pin. Run it by REVISION, from the repo root:
         #   nix run "git+file://$PWD?rev=$(git rev-parse HEAD)#publish-contribution"
-        # A `.#` reference copies the working tree into the store, decrypted .secrets included.
+        # A `.#` reference copies the working tree into the store, any decrypted sops file included.
         publish-contribution = {
           type = "app";
           program = "${probePkgs.writeShellApplication {
