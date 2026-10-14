@@ -1,13 +1,20 @@
 {
   description = "nnh — unsampled network-flow observability appliance (pmacct probe + Akvorado collector)";
 
+  # Every SEEDMATIC-owned input below is an INDIRECT id (`url = "ndh"`), resolved through
+  # nix's registry: the branch-less default targets live in the committed
+  # flake-registry.json, and the operator re-aims one by dropping a
+  # flake-registry.local.json beside it (see the [include] in .flox/env/manifest.toml).
+  # A branch named here could only be re-aimed by pushing an edit to this file; naming
+  # none means naming nothing that can be deleted. The lock still records a revision,
+  # so evaluating from it needs no registry at all.
   inputs = {
     # Shared aggregator — keeps nnh in lock-step with the rest of the
     # seedmatic family (nix-darwin-home, rke2lab): nixpkgs + everything else we
     # borrow (flox, sops-nix, nixos-generators, disko, …) flow from here rather
     # than pinning our own. We only wire `follows` for the inputs we actually
     # consume today; the rest are pulled from flake-commons when a module needs them.
-    flake-commons.url = "github:seedmatic/nix-flake-commons/develop";
+    flake-commons.url = "flake-commons";
     nixpkgs.follows = "flake-commons/nixpkgs";
 
     # Akvorado is nnh-specific — referenced DIRECTLY here, deliberately NOT
@@ -30,18 +37,20 @@
     # catalog to label our own side with per-host names in the flow console — no
     # darwin build is realized.
     #
-    # This is a MUTUAL (federated) dependency: nnh reads ndh's catalog while ndh
-    # reads nnh's `lib.networkBlueprint` (its own `nnh` input). That cycle is broken
-    # with `inputs.nnh.follows = ""` — an empty follows resolves to the ROOT flake
-    # (this one), a fixpoint that terminates the recursion (see the hub memory
-    # flake-mutual-dependency-follows-root). `inputs.flake-commons.follows` dedupes the
-    # shared aggregator so ndh and nnh resolve the SAME nixpkgs/flox/… tree instead of
-    # locking a second copy.
+    # ndh pins nnh's DELIVERY — the fabric/contribution orphan — not this flake, so the pair
+    # is no cycle and nothing is cut. `inputs.flake-commons.follows` dedupes the shared
+    # aggregator so ndh and nnh resolve the SAME nixpkgs/flox/… tree instead of locking a
+    # second copy.
     ndh = {
-      url = "github:seedmatic/ndh/develop";
-      inputs.nnh.follows = "";
+      url = "ndh";
       inputs.flake-commons.follows = "flake-commons";
     };
+
+    # nnh's own delivery, pinned back like any head: its fabric contribution,
+    # network-blueprint.json on the fabric/contribution orphan, which publish-contribution
+    # writes. Data, not a flake.
+    nnh-contribution.url = "nnh-contribution";
+    nnh-contribution.flake = false;
   };
 
   outputs =
@@ -107,12 +116,8 @@
       #   hosts    : name→{ip,mac,kind} → per-host /32 NetNames (daily-drivers +
       #              rke2 nodes projected from rke2lab)
       # This replaces nnh's former hardcoded selfBase/gatewayNetworks/asns.
-      # nnh keeps `ndh` as a flake input and consumes it LIVE at eval; the mutual
-      # dependency (ndh unioning nnh's blueprint) is broken with reciprocal
-      # `inputs.<other>.inputs.<self>.follows = ""` — added in lock-step with ndh
-      # when/if nnh contributes a span (see the hub memory
-      # flake-mutual-dependency-follows-root). Today nnh owns no span (both
-      # instances are DHCP tenants of ndh's fabric-br /21), so it is a pure consumer.
+      # nnh keeps `ndh` as a flake input and consumes it LIVE at eval. ndh unions nnh's
+      # contribution from its delivery, not from this flake, so there is no cycle to cut.
       ndhHosts = ndh.catalog.netplan.lan.hosts;
       ndhSegments = ndh.catalog.netplan.segments;
       ndhAsns = ndh.catalog.netplan.asns;
@@ -148,9 +153,8 @@
       # It stays a LITERAL rather than reading ndh's catalog, and that is not laziness: ndh
       # MERGES this blueprint into that catalog, so reading it back would close a real value
       # cycle. (nnh reads ndh's catalog elsewhere — just not from the contribution ndh
-      # consumes.) The flake-level mutual dependency is broken separately, with reciprocal
-      # `inputs.<other>.inputs.<self>.follows = ""` (see the hub memory
-      # flake-mutual-dependency-follows-root).
+      # consumes.) There is no flake-level cycle either: ndh pins this contribution's
+      # delivery, not nnh's flake.
       #
       # POSITION. ndh's fabric slice for a bare-metal is derived from rke2lab's hostId:
       # 172.16.<hostId*16>.0/20, whose low eight /24s are the fabric-br L2. Slot 0 of that
@@ -171,8 +175,10 @@
         outletAddress = "${base}.125";
       };
 
-      # What nnh CONTRIBUTES back to ndh's catalog (the "publish" side of the federation).
-      networkBlueprint = {
+      # What nnh CONTRIBUTES back to ndh's catalog — the SOURCE. publish-contribution delivers
+      # it to the fabric/contribution orphan, lib.networkBlueprint reads the pinned delivery,
+      # and contribution-fresh holds the pin to this.
+      contribution = {
         segments = [
           {
             cidr = collector.cidr;
@@ -192,6 +198,11 @@
         ];
         asns = { }; # nnh introduces no new AS numbers
       };
+
+      # The contribution as delivered: one file, keys sorted.
+      contributionJson = probePkgs.runCommand "network-blueprint.json" { nativeBuildInputs = [ probePkgs.yq-go ]; } ''
+        yq -p=json -o=json 'sort_keys(..)' ${probePkgs.writeText "contribution.json" (builtins.toJSON contribution)} > $out
+      '';
 
       # ── Collector deploy (darwin operator tool) ─────────────────────────────
       # The Incus client is Linux-only as a daemon, but nixpkgs ships a
@@ -335,6 +346,46 @@
           program = "${collectorDeploy}/bin/collector-deploy";
           meta.description = "Build both images + bring up the two-instance appliance (nnh-inlet + nnh-outlet) on fabric-br in the nnh Incus project — docs: https://github.com/seedmatic/nnh/blob/main/docs/architecture.adoc";
         };
+        # Deliver the contribution: its JSON onto the fabric/contribution orphan, one signed
+        # commit pushed fast-forward, by plumbing — no checkout moves. Then relock the
+        # nnh-contribution pin. Run it by REVISION, from the repo root:
+        #   nix run "git+file://$PWD?rev=$(git rev-parse HEAD)#publish-contribution"
+        # A `.#` reference copies the working tree into the store, any decrypted sops file included.
+        publish-contribution = {
+          type = "app";
+          program = "${probePkgs.writeShellApplication {
+            name = "publish-contribution";
+            runtimeInputs = [ probePkgs.coreutils probePkgs.git ];
+            text = ''
+              git rev-parse --show-toplevel >/dev/null
+              git fetch --quiet origin fabric/contribution
+              base=$(git rev-parse FETCH_HEAD)
+              blob=$(git hash-object -w --stdin < ${contributionJson})
+              tree=$(printf '100644 blob %s\tnetwork-blueprint.json\n' "$blob" | git mktree)
+              if [ "$tree" = "$(git rev-parse "$base^{tree}")" ]; then
+                echo "fabric/contribution already carries this contribution (''${base:0:12})"
+                exit 0
+              fi
+              commit=$(git commit-tree -S "$tree" -p "$base" -m "fabric/contribution: nnh's contribution, from $(git rev-parse --short HEAD)")
+              git push origin "$commit:refs/heads/fabric/contribution"
+              echo "delivered ''${commit:0:12} — now relock nnh's nnh-contribution pin"
+            '';
+          }}/bin/publish-contribution";
+          meta.description = "Deliver nnh's fabric contribution to the fabric/contribution orphan (signed commit, fast-forward push)";
+        };
+        # relock — nix-flake-commons' `lib.mkRelockApp`, the one implementation every seedmatic
+        # flake shares. This head supplies its name; the heads, the order and what each head pins
+        # are read from nix-flake-commons:fabric/heads.
+        relock = {
+          type = "app";
+          program = "${
+            inputs.flake-commons.lib.mkRelockApp {
+              pkgs = probePkgs;
+              name = "nnh";
+            }
+          }/bin/relock";
+          meta.description = "Reconcile THIS head's locks: bump each input, DROP any bump that moves nothing it exports, push. --plan shows a pass, --downstream plays it over every head of fabric/heads";
+        };
       };
 
       nixosConfigurations = {
@@ -342,8 +393,22 @@
         outlet = outletSystem;
       };
 
-      # The federation contribution ndh unions into its catalog (see the
-      # networkBlueprint `let` above): nnh's two fabric-br hosts, names only.
-      lib.networkBlueprint = networkBlueprint;
+      # The pinned fabric/contribution delivery: nnh's two fabric-br hosts, names only.
+      # ndh unions it into its catalog; the source is `contribution` above.
+      lib.networkBlueprint = builtins.fromJSON (builtins.readFile "${inputs.nnh-contribution}/network-blueprint.json");
+
+      # The pinned delivery is the source's: a contribution changed without being delivered
+      # fails here.
+      checks.${probeSystem}.contribution-fresh =
+        probePkgs.runCommand "contribution-fresh" { nativeBuildInputs = [ probePkgs.yq-go ]; } ''
+          yq -p=json -o=json 'sort_keys(..)' ${inputs.nnh-contribution}/network-blueprint.json > pinned.json
+          yq -p=json -o=json 'sort_keys(..)' ${contributionJson} > fresh.json
+          if ! diff -u pinned.json fresh.json; then
+            echo "the pinned fabric/contribution network-blueprint.json is STALE vs nnh's contribution." >&2
+            echo "Deliver it (publish-contribution), then relock nnh's nnh-contribution pin." >&2
+            exit 1
+          fi
+          touch $out
+        '';
     };
 }

@@ -86,37 +86,6 @@
     {
       "attr_path": "gnutar",
       "broken": false,
-      "derivation": "/nix/store/smwpwzpldpah35vkwjgkmnh2yrwl0mh2-gnutar-1.35.drv",
-      "description": "GNU implementation of the `tar` archiver",
-      "install_id": "gnutar",
-      "license": "GPL-3.0-or-later",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
-      "name": "gnutar-1.35",
-      "pname": "gnutar",
-      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
-      "rev_count": 1027867,
-      "rev_date": "2026-07-05T04:06:12Z",
-      "scrape_date": "2026-07-06T04:09:01.837913Z",
-      "stabilities": [
-        "staging",
-        "unstable"
-      ],
-      "unfree": false,
-      "version": "1.35",
-      "outputs_to_install": [
-        "out"
-      ],
-      "outputs": {
-        "info": "/nix/store/z68xf85yapz8rjzk7spnx09cf7cyngr5-gnutar-1.35-info",
-        "out": "/nix/store/s2z5cn0gikvb2x352nizvlwpmv18jh9k-gnutar-1.35"
-      },
-      "system": "x86_64-darwin",
-      "group": "toplevel",
-      "priority": 5
-    },
-    {
-      "attr_path": "gnutar",
-      "broken": false,
       "derivation": "/nix/store/45ynwydadvp0xmsy1bkag7lp2zysy1jc-gnutar-1.35.drv",
       "description": "GNU implementation of the `tar` archiver",
       "install_id": "gnutar",
@@ -222,41 +191,6 @@
     {
       "attr_path": "xz",
       "broken": false,
-      "derivation": "/nix/store/ck2ajgjx17hkapc3psrrb0dwl2wna15l-xz-5.8.3.drv",
-      "description": "General-purpose data compression software, successor of LZMA",
-      "install_id": "xz",
-      "license": "[ GPL-2.0-or-later, LGPL-2.1-or-later ]",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
-      "name": "xz-5.8.3",
-      "pname": "xz",
-      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
-      "rev_count": 1027867,
-      "rev_date": "2026-07-05T04:06:12Z",
-      "scrape_date": "2026-07-06T04:12:44.002332Z",
-      "stabilities": [
-        "staging",
-        "unstable"
-      ],
-      "unfree": false,
-      "version": "5.8.3",
-      "outputs_to_install": [
-        "bin",
-        "man"
-      ],
-      "outputs": {
-        "bin": "/nix/store/qwkiziwvl1763cd3nswsfjw8ly6a8r43-xz-5.8.3-bin",
-        "dev": "/nix/store/ihy4hh3mr8iafxshijsrhhkxdgwcngzx-xz-5.8.3-dev",
-        "doc": "/nix/store/p31mhij1nqxqjhgj8dpi2l25sfljzsqi-xz-5.8.3-doc",
-        "man": "/nix/store/k8xy2qhsq808p0fq767ix5gpy2ny529l-xz-5.8.3-man",
-        "out": "/nix/store/7x0wlnhm49c68zz0bf50h28ph54b2hb9-xz-5.8.3"
-      },
-      "system": "x86_64-darwin",
-      "group": "toplevel",
-      "priority": 5
-    },
-    {
-      "attr_path": "xz",
-      "broken": false,
       "derivation": "/nix/store/pw3f7sq1xmvl8whygy50kwb6jvdh6mbl-xz-5.8.3.drv",
       "description": "General-purpose data compression software, successor of LZMA",
       "install_id": "xz",
@@ -339,35 +273,6 @@
       "requested-outputs-to-install": [],
       "package-system": "aarch64-linux",
       "system": "aarch64-linux",
-      "name": "incus-client-7.3.0",
-      "pname": "incus-client",
-      "version": "7.3.0",
-      "description": "Powerful system container and virtual machine manager",
-      "licenses": [
-        "Apache-2.0"
-      ],
-      "broken": false,
-      "unfree": false,
-      "priority": 5
-    },
-    {
-      "install_id": "incus-client",
-      "locked-url": "github:seedmatic/rke2lab/c7b520d1443f89ea8d43b95b5a2568e4472ad92c?narHash=sha256-RO/6OMaVFUhJWskhHe/rFurKsA%2BZMvQlf7KXvC%2BaX5s%3D",
-      "flake-description": "RKE2 lab infrastructure and network blueprints",
-      "locked-flake-attr-path": "packages.x86_64-darwin.incus-client",
-      "derivation": "/nix/store/bak3dwdx50zzlj695yxbxny0c9iyzgwc-incus-client-7.3.0.drv",
-      "outputs": {
-        "out": "/nix/store/8sijjmvwsdm9mq79vmrv6rvndbmcmdjs-incus-client-7.3.0"
-      },
-      "output-names": [
-        "out"
-      ],
-      "outputs-to-install": [
-        "out"
-      ],
-      "requested-outputs-to-install": [],
-      "package-system": "x86_64-darwin",
-      "system": "x86_64-darwin",
       "name": "incus-client-7.3.0",
       "pname": "incus-client",
       "version": "7.3.0",
