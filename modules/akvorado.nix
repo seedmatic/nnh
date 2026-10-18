@@ -181,11 +181,9 @@ in
         Group = "akvorado";
         StateDirectory = "akvorado";
       };
-      script = builtins.readFile (
-        pkgs.replaceVars ./akvorado.d/geoip-fetch.sh {
-          geoipDir = cfg.geoip.directory;
-        }
-      );
+      script = import ../nix/replace-vars-text.nix lib ./akvorado.d/geoip-fetch.sh {
+        geoipDir = cfg.geoip.directory;
+      };
     };
 
     systemd.timers.akvorado-geoip = lib.mkIf cfg.geoip.enable {

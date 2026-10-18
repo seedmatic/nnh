@@ -82,11 +82,9 @@
           probePkgs.nix
           probePkgs.openssh
         ];
-        text = builtins.readFile (
-          probePkgs.replaceVars ./pkgs/nnh-probe.d/deploy.sh {
-            bundle = "${probe}";
-          }
-        );
+        text = import ./nix/replace-vars-text.nix probePkgs.lib ./pkgs/nnh-probe.d/deploy.sh {
+          bundle = "${probe}";
+        };
       };
 
       # Akvorado backend, patched for our macOS probe. pmacct on macOS can only
@@ -302,18 +300,16 @@
           probePkgs.xz
           probePkgs.yq-go # robust YAML parsing of incus list output (exact-name checks)
         ];
-        text = builtins.readFile (
-          probePkgs.replaceVars ./pkgs/collector-deploy.d/collector-deploy.sh {
-            inletMetadata = "${inletSystem.config.system.build.metadata}";
-            inletSquashfs = "${inletSystem.config.system.build.squashfs}";
-            inletProfile = "${inletProfileYaml}";
-            outletMetadata = "${outletSystem.config.system.build.metadata}";
-            outletSquashfs = "${outletSystem.config.system.build.squashfs}";
-            outletProfile = "${outletProfileYaml}";
-            # Chain the upstream probe deploy at the end (collector first, then probe).
-            probeDeploy = "${probeDeploy}/bin/nnh-probe-deploy";
-          }
-        );
+        text = import ./nix/replace-vars-text.nix probePkgs.lib ./pkgs/collector-deploy.d/collector-deploy.sh {
+          inletMetadata = "${inletSystem.config.system.build.metadata}";
+          inletSquashfs = "${inletSystem.config.system.build.squashfs}";
+          inletProfile = "${inletProfileYaml}";
+          outletMetadata = "${outletSystem.config.system.build.metadata}";
+          outletSquashfs = "${outletSystem.config.system.build.squashfs}";
+          outletProfile = "${outletProfileYaml}";
+          # Chain the upstream probe deploy at the end (collector first, then probe).
+          probeDeploy = "${probeDeploy}/bin/nnh-probe-deploy";
+        };
       };
     in
     {
@@ -397,18 +393,25 @@
       # ndh unions it into its catalog; the source is `contribution` above.
       lib.networkBlueprint = builtins.fromJSON (builtins.readFile "${inputs.nnh-contribution}/network-blueprint.json");
 
-      # The pinned delivery is the source's: a contribution changed without being delivered
-      # fails here.
-      checks.${probeSystem}.contribution-fresh =
-        probePkgs.runCommand "contribution-fresh" { nativeBuildInputs = [ probePkgs.yq-go ]; } ''
-          yq -p=json -o=json 'sort_keys(..)' ${inputs.nnh-contribution}/network-blueprint.json > pinned.json
-          yq -p=json -o=json 'sort_keys(..)' ${contributionJson} > fresh.json
-          if ! diff -u pinned.json fresh.json; then
-            echo "the pinned fabric/contribution network-blueprint.json is STALE vs nnh's contribution." >&2
-            echo "Deliver it (publish-contribution), then relock nnh's nnh-contribution pin." >&2
-            exit 1
-          fi
-          touch $out
-        '';
+      checks.${probeSystem} = {
+        # No nix file here reads a derivation's output at evaluation (import-from-derivation).
+        no-ifd-readfile = import ./nix/no-ifd-readfile.nix {
+          pkgs = probePkgs;
+          src = ./.;
+        };
+        # The pinned delivery is the source's: a contribution changed without being delivered
+        # fails here.
+        contribution-fresh =
+          probePkgs.runCommand "contribution-fresh" { nativeBuildInputs = [ probePkgs.yq-go ]; } ''
+            yq -p=json -o=json 'sort_keys(..)' ${inputs.nnh-contribution}/network-blueprint.json > pinned.json
+            yq -p=json -o=json 'sort_keys(..)' ${contributionJson} > fresh.json
+            if ! diff -u pinned.json fresh.json; then
+              echo "the pinned fabric/contribution network-blueprint.json is STALE vs nnh's contribution." >&2
+              echo "Deliver it (publish-contribution), then relock nnh's nnh-contribution pin." >&2
+              exit 1
+            fi
+            touch $out
+          '';
+      };
     };
 }
