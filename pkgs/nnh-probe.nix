@@ -24,7 +24,6 @@
   lib,
   pmacct,
   coreutils,
-  replaceVars,
   writeShellApplication,
   symlinkJoin,
 }:
@@ -48,27 +47,23 @@ let
   install = writeShellApplication {
     name = "nnh-probe-install";
     runtimeInputs = [ coreutils ];
-    text = builtins.readFile (
-      replaceVars ./nnh-probe.d/install.sh {
-        pmacctd = "${pmacctd}";
-        label = label;
-        plist = plistPath;
-        log = logPath;
-        confDir = confDir;
-      }
-    );
+    text = import ../nix/replace-vars-text.nix lib ./nnh-probe.d/install.sh {
+      pmacctd = "${pmacctd}";
+      label = label;
+      plist = plistPath;
+      log = logPath;
+      confDir = confDir;
+    };
   };
 
   uninstall = writeShellApplication {
     name = "nnh-probe-uninstall";
     runtimeInputs = [ coreutils ];
-    text = builtins.readFile (
-      replaceVars ./nnh-probe.d/uninstall.sh {
-        label = label;
-        plist = plistPath;
-        confDir = confDir;
-      }
-    );
+    text = import ../nix/replace-vars-text.nix lib ./nnh-probe.d/uninstall.sh {
+      label = label;
+      plist = plistPath;
+      confDir = confDir;
+    };
   };
 in
 symlinkJoin {
