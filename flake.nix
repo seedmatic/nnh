@@ -394,6 +394,11 @@
       lib.networkBlueprint = builtins.fromJSON (builtins.readFile "${inputs.nnh-contribution}/network-blueprint.json");
 
       checks.${probeSystem} = {
+        # nnh holds no secret: no .sops.yaml, no sops-encrypted file.
+        no-sops-files = import ./nix/no-sops-files.nix {
+          pkgs = probePkgs;
+          src = ./.;
+        };
         # No nix file here reads a derivation's output at evaluation (import-from-derivation).
         no-ifd-readfile = import ./nix/no-ifd-readfile.nix {
           pkgs = probePkgs;
