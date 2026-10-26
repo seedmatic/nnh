@@ -135,7 +135,9 @@
           system = collectorSystem;
           specialArgs = { inherit inputs akvoradoBackend ndhSegments ndhAsns ndhHosts; };
           modules = [
-            "${nixpkgs}/nixos/modules/virtualisation/lxc-container.nix"
+            # nixpkgs' lxc-container.nix without the installer channel, which copies all of nixpkgs into the image and
+            # into the store at every evaluation.
+            inputs.flake-commons.nixosModules.lxc-container
             hostFile
           ];
         };
@@ -398,6 +400,10 @@
         no-sops-files = import ./nix/no-sops-files.nix {
           pkgs = probePkgs;
           src = ./.;
+        };
+        # No collector carries the installer channel (all of nixpkgs copied at every evaluation of the system).
+        no-installer-channel = inputs.flake-commons.lib.noInstallerChannel probePkgs {
+          inherit (self.nixosConfigurations) inlet outlet;
         };
         # No nix file here reads a derivation's output at evaluation (import-from-derivation).
         no-ifd-readfile = import ./nix/no-ifd-readfile.nix {
