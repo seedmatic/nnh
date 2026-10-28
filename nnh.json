@@ -1,24 +1,24 @@
 {
   "schema": "seedmatic.relock/v1",
   "head": "nnh",
-  "rev": "be4a7790edb5e33fc00f72cf23162b687ac808b7",
+  "rev": "9bf63eb7317ad0b733f6b70eee43b3d1d1674f9b",
   "status": {
-    "wave": "flake-commons@2026-10-15T05:02:01Z",
-    "tool": "5dc283dbf05b6381aaeade7c72444f80b48a2b2c13bed1febcfdefcd243f0d64",
+    "wave": "flake-commons@2026-10-28T13:49:40Z",
+    "tool": "6625dd9228c531ccc31a2ab8112a9240110b3866f611bd80cff77e3894e02b59",
     "bumped": {
       "flake-commons": [
-        "d2aefe87a7451b65a6910ef620f02b3ab43519df",
-        "dcad528a375a24e06fdfc6e1bbc3cbf11fb3e0f9"
+        "e682b72f71330d2a385f5a440088d96695364062",
+        "14645f4a9cdf96bed7aaced4d7710952fdfb8c61"
       ],
       "ndh": [
-        "066b6ad76ead838db329221d201b6127be97d5b6",
-        "8479805899f48aeb6b49026dccd85922ce8c4c6a"
+        "7a3f65932657304596fc798b92df49ab67b3f1a7",
+        "e3dd0bf0b24fca00d2d07967abde27d99ecd179f"
       ]
     },
     "pruned": {},
     "dropped": [],
     "after": [],
     "unmeasured": [],
-    "seconds": 167
+    "seconds": 23
   }
 }
